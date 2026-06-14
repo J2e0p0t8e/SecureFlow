@@ -1,0 +1,12 @@
+# SecureFlow AI — dépendances principales
+Django>=5.0,<6.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+groq>=0.9.0
+
+# Mode C (Personne 5) — génération PDF
+reportlab>=4.0.0
+
+# Dev / tests
+pytest>=8.0.0
+pytest-django>=4.8.0
