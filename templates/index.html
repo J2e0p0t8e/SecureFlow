@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureFlow AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 2rem; }
+    h1 { color: #00d4aa; text-align: center; margin-bottom: 0.5rem; font-size: 2rem; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 2rem; }
+
+    /* Sélecteur de mode */
+    .mode-selector { display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; }
+    .mode-btn { padding: 0.6rem 1.5rem; border: 2px solid #00d4aa; background: transparent;
+                color: #00d4aa; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: all 0.2s; }
+    .mode-btn.active, .mode-btn:hover { background: #00d4aa; color: #0f0f0f; font-weight: bold; }
+
+    /* Formulaire */
+    .form-card { background: #1a1a1a; border-radius: 10px; padding: 2rem; max-width: 700px; margin: 0 auto 2rem; }
+    .input-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.4rem; color: #aaa; font-size: 0.9rem; }
+    input[type="text"], textarea {
+      width: 100%; padding: 0.75rem; background: #0f0f0f; border: 1px solid #333;
+      color: #e0e0e0; border-radius: 6px; font-size: 1rem;
+    }
+    textarea { height: 120px; resize: vertical; }
+    input[type="file"] { color: #aaa; }
+    .analyze-btn { width: 100%; padding: 0.9rem; background: #00d4aa; color: #0f0f0f;
+                   border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold;
+                   cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+    .analyze-btn:hover { background: #00b894; }
+
+    /* Band Room */
+    #band-room-section { max-width: 700px; margin: 0 auto; display: none; }
+    #band-room-section h2 { color: #00d4aa; margin-bottom: 1rem; }
+    #band-room { background: #0f0f0f; border: 1px solid #333; border-radius: 8px;
+                 padding: 1rem; max-height: 400px; overflow-y: auto; }
+    .agent-card { border-left: 4px solid #00d4aa; padding: 0.75rem; margin-bottom: 1rem;
+                  background: #1a1a1a; border-radius: 0 6px 6px 0; }
+    .agent-card strong { display: block; color: #00d4aa; font-size: 0.85rem;
+                         text-transform: uppercase; margin-bottom: 0.4rem; }
+    .agent-card pre { white-space: pre-wrap; font-size: 0.9rem; color: #ccc; }
+    #loader { text-align: center; color: #00d4aa; padding: 1rem; display: none; }
+    #pdf-btn { display: none; width: 100%; padding: 0.9rem; background: #6c63ff;
+               color: white; border: none; border-radius: 6px; font-size: 1rem;
+               cursor: pointer; margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>⚡ SecureFlow AI</h1>
+  <p class="subtitle">Analyse de sécurité propulsée par des agents IA</p>
+
+  <!-- Sélecteur de mode -->
+  <div class="mode-selector">
+    <button class="mode-btn active" data-mode="A">Mode A — Security Audit</button>
+    <button class="mode-btn" data-mode="B">Mode B — Dev Pipeline</button>
+    <button class="mode-btn" data-mode="C">Mode C — Rapport PDF</button>
+  </div>
+
+  <!-- Formulaire -->
+  <div class="form-card">
+    <div class="input-group">
+      <label>🔗 Lien GitHub</label>
+      <input type="text" id="github-url" placeholder="https://github.com/user/repo" />
+    </div>
+    <div class="input-group">
+      <label>📦 Upload ZIP</label>
+      <input type="file" id="zip-upload" accept=".zip" />
+    </div>
+    <div class="input-group">
+      <label>📝 Ou collez votre code / description ici</label>
+      <textarea id="code-input" placeholder="Collez du code (Mode A/C) ou décrivez votre projet (Mode B)..."></textarea>
+    </div>
+    <button class="analyze-btn" id="analyze-btn">🚀 Lancer l'analyse</button>
+  </div>
+
+  <!-- Band Room -->
+  <div id="band-room-section">
+    <h2>🤖 Band Room — Agents en action</h2>
+    <div id="band-room">
+      <div id="loader">⏳ Analyse en cours...</div>
+    </div>
+    <button id="pdf-btn">📄 Télécharger le rapport PDF</button>
+  </div>
+
+  <script>
+    // Sélecteur de mode
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    let currentMode = 'A';
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+      });
+    });
+
+    // Lancer l'analyse
+    document.getElementById('analyze-btn').addEventListener('click', async () => {
+      const githubUrl = document.getElementById('github-url').value.trim();
+      const codeInput = document.getElementById('code-input').value.trim();
+
+      if (!githubUrl && !codeInput) {
+        alert('Veuillez entrer un lien GitHub ou du code/texte.');
+        return;
+      }
+
+      // Afficher la Band Room
+      document.getElementById('band-room-section').style.display = 'block';
+      document.getElementById('band-room').innerHTML = '<div id="loader">⏳ Analyse en cours...</div>';
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('pdf-btn').style.display = 'none';
+
+      try {
+        const response = await fetch('/api/analyze/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: currentMode,
+            input_type: githubUrl ? 'github' : 'text',
+            github_url: githubUrl || '',
+            code: codeInput || '',
+            label: 'mon-projet',
+          }),
+        });
+
+        const data = await response.json();
+        displayResults(data);
+
+      } catch (err) {
+        document.getElementById('band-room').innerHTML =
+          `<div style="color:red">❌ Erreur : ${err.message}</div>`;
+      }
+    });
+
+    function displayResults(data) {
+      const bandRoom = document.getElementById('band-room');
+      bandRoom.innerHTML = '';
+
+      if (data.agents && data.agents.length > 0) {
+        data.agents.forEach(agent => {
+          const card = document.createElement('div');
+          card.className = 'agent-card';
+          card.innerHTML = `<strong>${agent.name}</strong><pre>${agent.content}</pre>`;
+          bandRoom.appendChild(card);
+        });
+      }
+
+      if (data.decision) {
+        const decision = document.createElement('div');
+        decision.className = 'agent-card';
+        decision.style.borderColor = '#ff6b6b';
+        decision.innerHTML = `<strong>🎯 Décision finale</strong><pre>${data.decision}</pre>`;
+        bandRoom.appendChild(decision);
+      }
+
+      // Bouton PDF en Mode C
+      if (data.mode === 'C' && data.session_id) {
+        const pdfBtn = document.getElementById('pdf-btn');
+        pdfBtn.style.display = 'block';
+        pdfBtn.onclick = () => window.open(`/api/pdf/${data.session_id}/`, '_blank');
+      }
+    }
+  </script>
+
+</body>
+</html>
