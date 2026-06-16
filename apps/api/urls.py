@@ -1,5 +1,6 @@
-"""Routes API — à compléter par Personne 2."""
-
 from django.urls import path
+from . import views
 
-urlpatterns: list = []
+urlpatterns = [
+    path("analyze/", views.analyze, name="analyze"),
+]
