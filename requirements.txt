@@ -7,6 +7,10 @@ groq>=0.9.0
 # Mode C (Personne 5) — génération PDF
 reportlab>=4.0.0
 
+# Production
+gunicorn>=21.2.0
+django-cors-headers>=4.3.0
+
 # Dev / tests
 pytest>=8.0.0
 pytest-django>=4.8.0

@@ -1,0 +1,76 @@
+services:
+  - type: web
+    name: secureflow-ai
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn secureflow.wsgi --log-file -
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: LLM_PROVIDER
+        value: groq
+      - key: LLM_MODEL
+        value: llama-3.3-70b-versatile
+      # Band AI agents (13 comptes)
+      - key: BAND_SCANNER_API_KEY
+        sync: false
+      - key: BAND_SCANNER_AGENT_ID
+        sync: false
+      - key: BAND_THREAT_API_KEY
+        sync: false
+      - key: BAND_THREAT_AGENT_ID
+        sync: false
+      - key: BAND_COMPLIANCE_API_KEY
+        sync: false
+      - key: BAND_COMPLIANCE_AGENT_ID
+        sync: false
+      - key: BAND_RISK_API_KEY
+        sync: false
+      - key: BAND_RISK_AGENT_ID
+        sync: false
+      - key: BAND_DECISION_API_KEY
+        sync: false
+      - key: BAND_DECISION_AGENT_ID
+        sync: false
+      - key: BAND_FEASIBILITY_API_KEY
+        sync: false
+      - key: BAND_FEASIBILITY_AGENT_ID
+        sync: false
+      - key: BAND_ARCHITECT_API_KEY
+        sync: false
+      - key: BAND_ARCHITECT_AGENT_ID
+        sync: false
+      - key: BAND_DESIGN_API_KEY
+        sync: false
+      - key: BAND_DESIGN_AGENT_ID
+        sync: false
+      - key: BAND_DEV_API_KEY
+        sync: false
+      - key: BAND_DEV_AGENT_ID
+        sync: false
+      - key: BAND_SECURITY_API_KEY
+        sync: false
+      - key: BAND_SECURITY_AGENT_ID
+        sync: false
+      - key: BAND_QA_API_KEY
+        sync: false
+      - key: BAND_QA_AGENT_ID
+        sync: false
+      - key: BAND_METRICS_API_KEY
+        sync: false
+      - key: BAND_METRICS_AGENT_ID
+        sync: false
+      - key: BAND_REPORT_API_KEY
+        sync: false
+      - key: BAND_REPORT_AGENT_ID
+        sync: false
+
+# Made with Bob
