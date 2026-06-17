@@ -97,5 +97,3 @@ class AnalysisSession(models.Model):
         return f"{len(agents)} agents: " + ", ".join(a.get("name", "?") for a in agents[:3])
     
     get_agents_summary.short_description = "Agents"
-
-# Made with Bob

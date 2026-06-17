@@ -1,0 +1,462 @@
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureFlow AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#0D0C15;min-height:100vh;padding:2rem 1rem}
+    .app{max-width:680px;margin:0 auto;position:relative}
+    .geo1{position:fixed;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:linear-gradient(135deg,#7C3AED22,#3B82F622);border:1px solid #7C3AED33;pointer-events:none}
+    .geo2{position:fixed;bottom:60px;left:-60px;width:160px;height:160px;background:linear-gradient(135deg,#F59E0B22,#EF444422);border:1px solid #F59E0B33;transform:rotate(45deg);pointer-events:none}
+    .geo3{position:fixed;top:220px;right:30px;width:70px;height:70px;background:#3B82F611;border:1px solid #3B82F633;border-radius:10px;transform:rotate(20deg);pointer-events:none}
+
+    /* Header */
+    .header{text-align:center;margin-bottom:2rem}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:#ffffff0f;border:0.5px solid #ffffff22;border-radius:999px;padding:4px 14px;font-size:11px;color:#ffffffaa;margin-bottom:14px}
+    .pill i{font-size:12px}
+    .header h1{font-size:32px;font-weight:600;color:#fff;margin-bottom:6px;letter-spacing:-0.5px}
+    .header p{font-size:13px;color:#ffffff55}
+
+    /* Modes */
+    .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+    .mode-card{background:#ffffff08;border:0.5px solid #ffffff15;border-radius:14px;padding:1rem;cursor:pointer;transition:all 0.3s ease;position:relative;overflow:hidden}
+    .mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0;transition:height 0.3s ease}
+    .mode-card.a::before{background:linear-gradient(90deg,#7C3AED,#A78BFA)}
+    .mode-card.b::before{background:linear-gradient(90deg,#0EA5E9,#38BDF8)}
+    .mode-card.c::before{background:linear-gradient(90deg,#10B981,#34D399)}
+    .mode-card:hover{background:#ffffff12;border-color:#ffffff30;transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+    .mode-card:hover::before{height:4px}
+    .mode-card:active{transform:translateY(-2px)}
+    .mode-card.active{background:#ffffff12;border-color:#ffffff30;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+    .mode-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;transition:all 0.3s ease}
+    .mode-card.a .mode-icon{background:#7C3AED22}
+    .mode-card.a .mode-icon i{color:#A78BFA;font-size:18px;transition:transform 0.3s ease}
+    .mode-card.a:hover .mode-icon{background:#7C3AED33;transform:scale(1.1)}
+    .mode-card.a:hover .mode-icon i{transform:rotate(5deg)}
+    .mode-card.b .mode-icon{background:#0EA5E922}
+    .mode-card.b .mode-icon i{color:#38BDF8;font-size:18px;transition:transform 0.3s ease}
+    .mode-card.b:hover .mode-icon{background:#0EA5E933;transform:scale(1.1)}
+    .mode-card.b:hover .mode-icon i{transform:rotate(-5deg)}
+    .mode-card.c .mode-icon{background:#10B98122}
+    .mode-card.c .mode-icon i{color:#34D399;font-size:18px;transition:transform 0.3s ease}
+    .mode-card.c:hover .mode-icon{background:#10B98133;transform:scale(1.1)}
+    .mode-card.c:hover .mode-icon i{transform:rotate(5deg)}
+    .mode-card h3{font-size:12px;font-weight:600;color:#fff;margin-bottom:2px;transition:color 0.2s}
+    .mode-card:hover h3{color:#fff}
+    .mode-card p{font-size:10px;color:#ffffff55;transition:color 0.2s}
+    .mode-card:hover p{color:#ffffff88}
+
+    /* Sélecteur d'agents */
+    .agents-selector{background:#ffffff08;border:0.5px solid #ffffff15;border-radius:14px;padding:1rem;margin-bottom:1rem;transition:all 0.3s ease}
+    .agents-selector:hover{background:#ffffff0a;border-color:#ffffff20;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+    .agents-selector h3{font-size:12px;font-weight:600;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .agents-selector h3 i{color:#7C3AED}
+    .agents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+    .agent-checkbox{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#ffffff05;border:0.5px solid #ffffff15;border-radius:8px;cursor:pointer;transition:all 0.3s ease;position:relative}
+    .agent-checkbox:hover{background:#7C3AED15;border-color:#7C3AED66;transform:translateY(-2px);box-shadow:0 4px 12px #7C3AED22}
+    .agent-checkbox:active{transform:translateY(0);box-shadow:0 2px 6px #7C3AED22}
+    .agent-checkbox input[type="checkbox"]{width:14px;height:14px;cursor:pointer;accent-color:#7C3AED;transition:transform 0.2s}
+    .agent-checkbox:hover input[type="checkbox"]{transform:scale(1.1)}
+    .agent-checkbox label{font-size:11px;color:#ffffffaa;cursor:pointer;user-select:none;transition:color 0.2s}
+    .agent-checkbox:hover label{color:#fff}
+    .agent-checkbox input:checked + label{color:#fff;font-weight:600}
+    .agent-checkbox input:checked{transform:scale(1.15)}
+    .select-all-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#7C3AED22;border:0.5px solid #7C3AED44;border-radius:6px;font-size:10px;color:#A78BFA;cursor:pointer;margin-bottom:8px}
+    .select-all-btn:hover{background:#7C3AED33}
+
+    /* Formulaire */
+    .form-box{background:#ffffff08;border:0.5px solid #ffffff15;border-radius:14px;padding:1.25rem;margin-bottom:1rem;transition:all 0.3s ease}
+    .form-box:hover{background:#ffffff0a;border-color:#ffffff20;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+    .field{margin-bottom:1rem}
+    .field label{display:block;font-size:11px;color:#ffffff66;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+    .field input,.field textarea{width:100%;padding:9px 12px;border:0.5px solid #ffffff20;border-radius:10px;font-size:13px;background:#ffffff0a;color:#fff;outline:none}
+    .field input:focus,.field textarea:focus{border-color:#7C3AED66}
+    .field input::placeholder,.field textarea::placeholder{color:#ffffff33}
+    .field textarea{height:85px;resize:none}
+    .upload-label{display:flex;align-items:center;gap:8px;padding:9px 12px;border:0.5px dashed #ffffff25;border-radius:10px;cursor:pointer;color:#ffffff44;font-size:13px;transition:border-color 0.2s}
+    .upload-label:hover{border-color:#7C3AED66;color:#ffffff88}
+    .upload-label i{font-size:16px}
+    input[type="file"]{display:none}
+    .btn{width:100%;padding:12px;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.3s ease}
+    .btn:hover{opacity:0.9;transform:translateY(-2px);box-shadow:0 6px 20px rgba(124,58,237,0.4)}
+    .btn:active{transform:translateY(0);box-shadow:0 2px 10px rgba(124,58,237,0.3)}
+    .btn i{font-size:16px;transition:transform 0.3s ease}
+    .btn:hover i{transform:scale(1.2)}
+
+    /* Band Room */
+    #band-room-section{display:none;margin-top:1rem}
+    .band-box{background:#ffffff08;border:0.5px solid #ffffff15;border-radius:14px;padding:1.25rem;transition:all 0.3s ease}
+    .band-box:hover{background:#ffffff0a;border-color:#ffffff20;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+    .band-header{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+    .dot{width:8px;height:8px;border-radius:50%;background:#10B981;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    .band-header h2{font-size:13px;font-weight:600;color:#fff}
+    .band-header .mode-tag{font-size:11px;color:#ffffff44;margin-left:auto;background:#ffffff0a;padding:3px 10px;border-radius:999px}
+    
+    /* Messages agents avec communication */
+    .agent-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;animation:fadeIn 0.3s ease}
+    .agent-row.communication{margin-left:20px;opacity:0.8}
+    .agent-row.communication .av{width:24px;height:24px}
+    .agent-row.communication .msg-body .name{font-size:9px}
+    .agent-row.communication .msg-body .content{font-size:11px;background:#ffffff05;font-style:italic}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .av i{font-size:14px}
+    .av.purple{background:#7C3AED22;border:0.5px solid #7C3AED44}.av.purple i{color:#A78BFA}
+    .av.red{background:#EF444422;border:0.5px solid #EF444444}.av.red i{color:#FCA5A5}
+    .av.blue{background:#0EA5E922;border:0.5px solid #0EA5E944}.av.blue i{color:#38BDF8}
+    .av.green{background:#10B98122;border:0.5px solid #10B98144}.av.green i{color:#34D399}
+    .av.amber{background:#F59E0B22;border:0.5px solid #F59E0B44}.av.amber i{color:#FCD34D}
+    .av.pink{background:#EC489922;border:0.5px solid #EC489944}.av.pink i{color:#F9A8D4}
+    .msg-body{flex:1}
+    .msg-body .name{font-size:10px;font-weight:600;color:#ffffff55;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em}
+    .msg-body .content{font-size:12px;color:#ffffffcc;line-height:1.6;background:#ffffff08;padding:8px 10px;border-radius:8px}
+    .msg-body .timestamp{font-size:9px;color:#ffffff33;margin-top:2px}
+    .verdict{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:#10B98120;border:0.5px solid #10B98140;padding:6px 16px;border-radius:999px;font-size:12px;color:#34D399;font-weight:600}
+    .loader{text-align:center;padding:1.5rem;color:#ffffff44;font-size:13px}
+    .loader i{font-size:24px;display:block;margin-bottom:8px;animation:spin 1s linear infinite}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .btn-pdf{display:none;width:100%;margin-top:12px;padding:11px;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all 0.3s ease}
+    .btn-pdf:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(16,185,129,0.4)}
+    .btn-pdf:active{transform:translateY(0);box-shadow:0 2px 10px rgba(16,185,129,0.3)}
+    .btn-pdf i{font-size:16px;transition:transform 0.3s ease}
+    .btn-pdf:hover i{transform:scale(1.2) rotate(-10deg)}
+  </style>
+</head>
+<body>
+
+  <div class="geo1"></div>
+  <div class="geo2"></div>
+  <div class="geo3"></div>
+
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="pill"><i class="ti ti-sparkles"></i> Band of Agents Hackathon 2026</div>
+      <h1>SecureFlow AI</h1>
+      <p>Analyse de sécurité propulsée par des agents IA</p>
+    </div>
+
+    <!-- Modes -->
+    <div class="modes">
+      <div class="mode-card a active" data-mode="A" onclick="selectMode(this)">
+        <div class="mode-icon"><i class="ti ti-shield-lock"></i></div>
+        <h3>Security Audit</h3>
+        <p>Vulnérabilités & risques</p>
+      </div>
+      <div class="mode-card b" data-mode="B" onclick="selectMode(this)">
+        <div class="mode-icon"><i class="ti ti-code-circle"></i></div>
+        <h3>Dev Pipeline</h3>
+        <p>Équipe complète IA</p>
+      </div>
+      <div class="mode-card c" data-mode="C" onclick="selectMode(this)">
+        <div class="mode-icon"><i class="ti ti-file-text"></i></div>
+        <h3>Rapport PDF</h3>
+        <p>Livrable professionnel</p>
+      </div>
+    </div>
+
+    <!-- Sélecteur d'agents -->
+    <div class="agents-selector" id="agents-selector">
+      <h3><i class="ti ti-users"></i> Sélectionner les agents</h3>
+      <div class="select-all-btn" onclick="toggleAllAgents()">
+        <i class="ti ti-checkbox"></i> Tout sélectionner/désélectionner
+      </div>
+      <div class="agents-grid" id="agents-grid">
+        <!-- Agents Mode A -->
+        <div class="agent-checkbox" data-mode="A">
+          <input type="checkbox" id="agent-scanner" value="ScannerAgent" checked>
+          <label for="agent-scanner">Scanner</label>
+        </div>
+        <div class="agent-checkbox" data-mode="A">
+          <input type="checkbox" id="agent-threat" value="ThreatAgent" checked>
+          <label for="agent-threat">Threat</label>
+        </div>
+        <div class="agent-checkbox" data-mode="A">
+          <input type="checkbox" id="agent-compliance" value="ComplianceAgent" checked>
+          <label for="agent-compliance">Compliance</label>
+        </div>
+        <div class="agent-checkbox" data-mode="A">
+          <input type="checkbox" id="agent-risk" value="RiskAgent" checked>
+          <label for="agent-risk">Risk</label>
+        </div>
+        <div class="agent-checkbox" data-mode="A">
+          <input type="checkbox" id="agent-decision" value="DecisionAgent" checked>
+          <label for="agent-decision">Decision</label>
+        </div>
+        <!-- Agents Mode B -->
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-feasibility" value="FeasibilityAgent" checked>
+          <label for="agent-feasibility">Feasibility</label>
+        </div>
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-architect" value="ArchitectAgent" checked>
+          <label for="agent-architect">Architect</label>
+        </div>
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-design" value="DesignAgent" checked>
+          <label for="agent-design">Design</label>
+        </div>
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-dev" value="DevAgent" checked>
+          <label for="agent-dev">Dev</label>
+        </div>
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-security" value="SecurityAgent" checked>
+          <label for="agent-security">Security</label>
+        </div>
+        <div class="agent-checkbox" data-mode="B" style="display:none">
+          <input type="checkbox" id="agent-qa" value="QAAgent" checked>
+          <label for="agent-qa">QA</label>
+        </div>
+        <!-- Agents Mode C -->
+        <div class="agent-checkbox" data-mode="C" style="display:none">
+          <input type="checkbox" id="agent-scanner-c" value="ScannerAgent" checked>
+          <label for="agent-scanner-c">Scanner</label>
+        </div>
+        <div class="agent-checkbox" data-mode="C" style="display:none">
+          <input type="checkbox" id="agent-threat-c" value="ThreatAgent" checked>
+          <label for="agent-threat-c">Threat</label>
+        </div>
+        <div class="agent-checkbox" data-mode="C" style="display:none">
+          <input type="checkbox" id="agent-compliance-c" value="ComplianceAgent" checked>
+          <label for="agent-compliance-c">Compliance</label>
+        </div>
+        <div class="agent-checkbox" data-mode="C" style="display:none">
+          <input type="checkbox" id="agent-metrics" value="MetricsAgent" checked>
+          <label for="agent-metrics">Metrics</label>
+        </div>
+        <div class="agent-checkbox" data-mode="C" style="display:none">
+          <input type="checkbox" id="agent-report" value="ReportAgent" checked>
+          <label for="agent-report">Report</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="form-box">
+      <div class="field">
+        <label><i class="ti ti-brand-github"></i> Lien GitHub</label>
+        <input type="text" id="github-url" placeholder="https://github.com/user/repo" />
+      </div>
+      <div class="field">
+        <label><i class="ti ti-upload"></i> Upload ZIP</label>
+        <label class="upload-label" for="zip-upload">
+          <i class="ti ti-file-zip"></i>
+          <span id="zip-label">Choisir un fichier .zip</span>
+        </label>
+        <input type="file" id="zip-upload" accept=".zip" onchange="updateZipLabel(this)"/>
+      </div>
+      <div class="field">
+        <label><i class="ti ti-terminal-2"></i> Code ou description</label>
+        <textarea id="code-input" placeholder="Collez du code (Mode A/C) ou décrivez votre projet (Mode B)..."></textarea>
+      </div>
+      <button class="btn" id="analyze-btn" onclick="launchAnalysis()">
+        <i class="ti ti-player-play"></i> Lancer l'analyse
+      </button>
+    </div>
+
+    <!-- Band Room -->
+    <div id="band-room-section">
+      <div class="band-box">
+        <div class="band-header">
+          <div class="dot"></div>
+          <h2>Band Room — agents en action</h2>
+          <span class="mode-tag" id="mode-tag">Mode A</span>
+        </div>
+        <div id="band-room"></div>
+        <button class="btn-pdf" id="pdf-btn">
+          <i class="ti ti-download"></i> Télécharger le rapport PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const agentStyles = {
+      ScannerAgent:    {color:'purple', icon:'ti-scan'},
+      ThreatAgent:     {color:'red',    icon:'ti-alert-triangle'},
+      ComplianceAgent: {color:'blue',   icon:'ti-clipboard-check'},
+      RiskAgent:       {color:'amber',  icon:'ti-chart-bar'},
+      DecisionAgent:   {color:'green',  icon:'ti-gavel'},
+      FeasibilityAgent:{color:'purple', icon:'ti-bulb'},
+      ArchitectAgent:  {color:'blue',   icon:'ti-building'},
+      DesignAgent:     {color:'pink',   icon:'ti-palette'},
+      DevAgent:        {color:'amber',  icon:'ti-code'},
+      SecurityAgent:   {color:'red',    icon:'ti-shield'},
+      QAAgent:         {color:'green',  icon:'ti-check'},
+      MetricsAgent:    {color:'blue',   icon:'ti-chart-dots'},
+      ReportAgent:     {color:'green',  icon:'ti-file-description'},
+    };
+
+    let currentMode = 'A';
+    let selectedAgents = [];
+
+    function selectMode(card) {
+      document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentMode = card.dataset.mode;
+      updateAgentSelector();
+    }
+
+    function updateAgentSelector() {
+      document.querySelectorAll('.agent-checkbox').forEach(box => {
+        const mode = box.dataset.mode;
+        box.style.display = mode === currentMode ? 'flex' : 'none';
+      });
+    }
+
+    function toggleAllAgents() {
+      const visibleCheckboxes = document.querySelectorAll(`.agent-checkbox[data-mode="${currentMode}"] input[type="checkbox"]`);
+      const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+      visibleCheckboxes.forEach(cb => cb.checked = !allChecked);
+    }
+
+    function getSelectedAgents() {
+      const checkboxes = document.querySelectorAll(`.agent-checkbox[data-mode="${currentMode}"] input[type="checkbox"]:checked`);
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function updateZipLabel(input) {
+      document.getElementById('zip-label').textContent =
+        input.files[0] ? input.files[0].name : 'Choisir un fichier .zip';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    async function launchAnalysis() {
+      const githubUrl = document.getElementById('github-url').value.trim();
+      const codeInput = document.getElementById('code-input').value.trim();
+      const zipFile = document.getElementById('zip-upload').files[0];
+      selectedAgents = getSelectedAgents();
+
+      if (!githubUrl && !codeInput && !zipFile) {
+        alert('Veuillez entrer un lien GitHub, du texte ou un fichier ZIP.');
+        return;
+      }
+
+      if (selectedAgents.length === 0) {
+        alert('Veuillez sélectionner au moins un agent.');
+        return;
+      }
+
+      const section = document.getElementById('band-room-section');
+      const bandRoom = document.getElementById('band-room');
+      section.style.display = 'block';
+      document.getElementById('mode-tag').textContent = `Mode ${currentMode} — ${selectedAgents.length} agent(s)`;
+      document.getElementById('pdf-btn').style.display = 'none';
+      bandRoom.innerHTML = '<div class="loader"><i class="ti ti-loader-2"></i>Analyse en cours...</div>';
+      section.scrollIntoView({behavior:'smooth'});
+
+      try {
+        let res;
+
+        if (zipFile) {
+          const formData = new FormData();
+          formData.append('mode', currentMode);
+          formData.append('input_type', 'zip');
+          formData.append('label', zipFile.name.replace(/\.zip$/i, '') || 'projet-zip');
+          formData.append('file', zipFile);
+          res = await fetch('/api/analyze/', { method: 'POST', body: formData });
+        } else {
+          res = await fetch('/api/analyze/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              mode: currentMode,
+              input_type: githubUrl ? 'github' : 'text',
+              github_url: githubUrl,
+              content: codeInput,
+              label: 'mon-projet',
+              selected_agents: selectedAgents,
+            }),
+          });
+        }
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || data.message || 'Erreur serveur');
+        }
+        displayResults(data);
+
+      } catch(err) {
+        bandRoom.innerHTML = `<div style="color:#FCA5A5;padding:1rem;font-size:13px">Erreur : ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function displayResults(data) {
+      const bandRoom = document.getElementById('band-room');
+      bandRoom.innerHTML = '';
+
+      let messageIndex = 0;
+      (data.agents || []).forEach((agent, i) => {
+        setTimeout(() => {
+          const style = agentStyles[agent.name] || {color:'purple', icon:'ti-robot'};
+          const row = document.createElement('div');
+          row.className = 'agent-row';
+          const timestamp = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+          row.innerHTML = `
+            <div class="av ${style.color}"><i class="ti ${style.icon}"></i></div>
+            <div class="msg-body">
+              <div class="name">${escapeHtml(agent.name)}</div>
+              <div class="content">${escapeHtml(agent.content)}</div>
+              <div class="timestamp">${timestamp}</div>
+            </div>`;
+          bandRoom.appendChild(row);
+          messageIndex++;
+
+          // Simuler communication entre agents
+          if (i < (data.agents || []).length - 1) {
+            setTimeout(() => {
+              const nextAgent = (data.agents || [])[i + 1];
+              const commRow = document.createElement('div');
+              commRow.className = 'agent-row communication';
+              const nextStyle = agentStyles[nextAgent.name] || {color:'purple', icon:'ti-robot'};
+              commRow.innerHTML = `
+                <div class="av ${nextStyle.color}"><i class="ti ti-arrow-right"></i></div>
+                <div class="msg-body">
+                  <div class="name">Communication → ${nextAgent.name}</div>
+                  <div class="content">Transmission du contexte et des résultats pour analyse...</div>
+                </div>`;
+              bandRoom.appendChild(commRow);
+            }, 150);
+          }
+        }, messageIndex * 450);
+        messageIndex++;
+      });
+
+      setTimeout(() => {
+        if (data.decision) {
+          const verdict = document.createElement('div');
+          verdict.innerHTML = `<span class="verdict"><i class="ti ti-circle-check"></i> Décision : ${data.decision}</span>`;
+          bandRoom.appendChild(verdict);
+        }
+        // Afficher le bouton PDF pour TOUS les modes (A, B, C)
+        const pdfRoomId = data.room_id || data.session_id;
+        if (pdfRoomId) {
+          const pdfBtn = document.getElementById('pdf-btn');
+          pdfBtn.style.display = 'flex';
+          pdfBtn.onclick = () => window.open(`/api/pdf/${pdfRoomId}/`, '_blank');
+          
+          // Changer le texte du bouton selon le mode
+          const btnText = data.mode === 'C' ? 'Télécharger le rapport PDF' : 'Télécharger le rapport d\'analyse';
+          pdfBtn.innerHTML = `<i class="ti ti-download"></i> ${btnText}`;
+        }
+      }, messageIndex * 450 + 200);
+    }
+
+    // Initialiser le sélecteur d'agents au chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      updateAgentSelector();
+    });
+  </script>
+
+</body>
+</html>
