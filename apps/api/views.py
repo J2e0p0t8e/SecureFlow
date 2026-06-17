@@ -1,141 +1,261 @@
 import json
 import uuid
+import time
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .pdf_generator import generate_audit_pdf
+from apps.api.models import AnalysisSession
+
+# Import conditionnel pour éviter les erreurs au démarrage
+try:
+    from apps.orchestrator.services import run_security_audit_json
+    ORCHESTRATOR_AVAILABLE = True
+except Exception as e:
+    ORCHESTRATOR_AVAILABLE = False
+    ORCHESTRATOR_ERROR = str(e)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def analyze(request):
-    data = json.loads(request.body)
+    """
+    Endpoint principal pour lancer une analyse SecureFlow.
+    Remplace le mock par les vrais appels à l'orchestrateur de Personne 2.
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
     mode = data.get("mode", "A")
-
-    room_id = str(uuid.uuid4())
-    audit_id = f"SF-AUDIT-20260616-{str(uuid.uuid4())[:4].upper()}"
-
+    input_type = data.get("input_type", "text")
+    project_label = data.get("label", "Projet")
+    
+    # Récupération du contenu selon le type d'input
+    if input_type == "text":
+        project_content = data.get("content", "")
+        if not project_content:
+            return JsonResponse({"error": "content is required for input_type=text"}, status=400)
+    
+    elif input_type == "github":
+        github_url = data.get("github_url", "")
+        if not github_url:
+            return JsonResponse({"error": "github_url is required for input_type=github"}, status=400)
+        
+        # TODO: Personne 2 doit implémenter l'ingestion GitHub
+        # from apps.ingestion.github import fetch_github_project
+        # project_content = fetch_github_project(github_url)
+        return JsonResponse({
+            "error": "GitHub ingestion not yet implemented by Personne 2",
+            "message": "Use input_type=text for now"
+        }, status=501)
+    
+    elif input_type == "zip":
+        # TODO: Personne 2 doit implémenter l'ingestion ZIP
+        # from apps.ingestion.zip_loader import extract_zip_project
+        # project_content = extract_zip_project(request.FILES["file"].read())
+        return JsonResponse({
+            "error": "ZIP ingestion not yet implemented by Personne 2",
+            "message": "Use input_type=text for now"
+        }, status=501)
+    
+    else:
+        return JsonResponse({"error": f"Invalid input_type: {input_type}"}, status=400)
+    
+    # Appel à l'orchestrateur selon le mode
     if mode == "A":
-        agents = [
-            {"name": "ScannerAgent", "content": "SCAN TERMINÉ : 3 zones sensibles détectées — endpoints /login, /api/users, dépendance Flask 1.0.2 obsolète."},
-            {"name": "ThreatAgent", "content": "MENACES IDENTIFIÉES : Injection SQL possible sur /login (Critique), XSS sur /api/users (Élevé), CVE-2021-23386 (Moyen)."},
-            {"name": "ComplianceAgent", "content": "CONFORMITÉ : Injection SQL → OWASP A03:2021 / CWE-89. XSS → OWASP A07:2021 / CWE-79. RGPD : données personnelles exposées."},
-            {"name": "RiskAgent", "content": "SCORE DE RISQUE : 7.2/10 — Élevé. Impact business : accès non autorisé aux données utilisateurs possible."},
-            {"name": "DecisionAgent", "content": "DÉCISION : CORRIGER AVANT MISE EN PROD. Actions : (1) Paramétrer les requêtes SQL, (2) Échapper les sorties HTML, (3) Mettre à jour Flask."},
-        ]
-        decision = "CORRIGER"
-        final_report = f"""RAPPORT D'AUDIT DE SÉCURITÉ — {audit_id}
-
-ScannerAgent : 3 zones sensibles détectées — endpoints /login, /api/users, dépendance Flask 1.0.2 obsolète.
-
-ThreatAgent : Injection SQL possible sur /login (Critique), XSS sur /api/users (Élevé), CVE-2021-23386 (Moyen).
-
-ComplianceAgent : OWASP A03:2021 / CWE-89 (SQL), OWASP A07:2021 / CWE-79 (XSS). RGPD : données exposées.
-
-RiskAgent : Score de risque 7.2/10 — Élevé. Impact business : accès non autorisé aux données utilisateurs.
-
-DecisionAgent : CORRIGER AVANT MISE EN PROD. Actions prioritaires : (1) Paramétrer les requêtes SQL, (2) Échapper les sorties HTML, (3) Mettre à jour Flask."""
-
+        # Mode A : Audit de sécurité (implémenté par Personne 1)
+        start_time = time.time()
+        
+        # Vérifier si l'orchestrateur est disponible
+        if not ORCHESTRATOR_AVAILABLE:
+            return JsonResponse({
+                "error": "Orchestrator not available",
+                "message": f"Cannot import orchestrator: {ORCHESTRATOR_ERROR}",
+                "mode": "A"
+            }, status=500)
+        
+        try:
+            # Lancer l'analyse
+            result = run_security_audit_json(
+                project_content,
+                project_label=project_label
+            )
+            
+            # Calculer la durée
+            duration = int(time.time() - start_time)
+            
+            # Ajouter session_id pour compatibilité avec l'interface
+            result["session_id"] = result.get("room_id", str(uuid.uuid4()))
+            
+            # Sauvegarder en base de données
+            session = AnalysisSession.objects.create(
+                mode=mode,
+                room_id=result["room_id"],
+                audit_id=result.get("audit_id", ""),
+                input_type=input_type,
+                input_source=data.get("github_url", "") if input_type == "github" else "",
+                project_label=project_label,
+                decision=result.get("decision", ""),
+                final_report=result.get("final_report", ""),
+                result_json=result,
+                duration_seconds=duration,
+                status="completed"
+            )
+            
+            return JsonResponse(result)
+        
+        except Exception as e:
+            # Sauvegarder l'erreur en base
+            try:
+                AnalysisSession.objects.create(
+                    mode=mode,
+                    room_id=str(uuid.uuid4()),
+                    input_type=input_type,
+                    project_label=project_label,
+                    status="failed",
+                    error_message=str(e),
+                    result_json={"error": str(e)}
+                )
+            except:
+                pass  # Si la sauvegarde échoue, on continue
+            
+            return JsonResponse({
+                "error": "Security audit failed",
+                "message": str(e),
+                "mode": "A"
+            }, status=500)
+    
     elif mode == "B":
-        agents = [
-            {"name": "FeasibilityAgent", "content": "FAISABILITÉ : Projet réalisable en 3 semaines. Risques : intégration paiement complexe. Feu vert avec réserves."},
-            {"name": "ArchitectAgent", "content": "ARCHITECTURE : Django REST + React + PostgreSQL. Structure : apps/auth, apps/products, apps/orders."},
-            {"name": "DesignAgent", "content": "DESIGN : Interface minimaliste, palette bleu/blanc, composants : Navbar, ProductCard, CartDrawer, CheckoutForm."},
-            {"name": "DevAgent", "content": "CODE GÉNÉRÉ : models.py, views.py, serializers.py, App.jsx avec routing React. 847 lignes au total."},
-            {"name": "SecurityAgent", "content": "AUDIT CODE : token JWT non expiré (Élevé), mot de passe en clair dans les logs (Critique). Correctifs fournis."},
-            {"name": "QAAgent", "content": "VALIDATION : Score qualité 72/100. Tests à implémenter : auth flow, panier, paiement."},
-        ]
-        decision = "LIVRABLE PRÊT"
-        final_report = f"""RAPPORT DE DÉVELOPPEMENT — {audit_id}
-
-FeasibilityAgent : Projet réalisable en 3 semaines. Risques : intégration paiement complexe. Feu vert avec réserves.
-
-ArchitectAgent : Architecture Django REST + React + PostgreSQL. Structure : apps/auth, apps/products, apps/orders.
-
-DesignAgent : Interface minimaliste, palette bleu/blanc. Composants : Navbar, ProductCard, CartDrawer, CheckoutForm.
-
-DevAgent : Code généré — models.py, views.py, serializers.py, App.jsx avec routing React. Total : 847 lignes.
-
-SecurityAgent : Audit du code généré — token JWT non expiré (Élevé), mot de passe en clair dans les logs (Critique). Correctifs fournis.
-
-QAAgent : Score qualité 72/100. Tests à implémenter : auth flow, panier, paiement."""
-
-    else:  # Mode C
-        agents = [
-            {"name": "ScannerAgent", "content": "CARTOGRAPHIE : 12 fichiers analysés, 4 zones sensibles, langage dominant Python/Django."},
-            {"name": "ThreatAgent", "content": "VULNÉRABILITÉS : 2 Critiques, 3 Élevées, 4 Moyennes, 1 Faible."},
-            {"name": "ComplianceAgent", "content": "CONFORMITÉ : OWASP Top 10 — 3 violations. CWE — 5 références. RGPD : données sans consentement."},
-            {"name": "MetricsAgent", "content": "MÉTRIQUES : Score global 6.8/10. Dette technique : 4 jours. Couverture bonnes pratiques : 61%."},
-            {"name": "ReportAgent", "content": "RAPPORT FINAL : 10 vulnérabilités documentées, recommandations priorisées. ID : SF-AUDIT-20260616-0042."},
-        ]
-        decision = "RAPPORT GÉNÉRÉ"
-        final_report = f"""RAPPORT COMPLET D'AUDIT — {audit_id}
-
-ScannerAgent : Cartographie — 12 fichiers analysés, 4 zones sensibles, langage dominant Python/Django.
-
-ThreatAgent : Vulnérabilités détectées — 2 Critiques, 3 Élevées, 4 Moyennes, 1 Faible.
-
-ComplianceAgent : Conformité — OWASP Top 10 (3 violations), CWE (5 références), RGPD (données sans consentement).
-
-MetricsAgent : Métriques — Score global 6.8/10, Dette technique 4 jours, Couverture bonnes pratiques 61%.
-
-ReportAgent : 10 vulnérabilités documentées avec recommandations priorisées."""
-
-    return JsonResponse({
-        "mode": mode,
-        "room_id": room_id,
-        "decision": decision,
-        "audit_id": audit_id,
-        "final_report": final_report,
-        "agents": agents,
-        "session_id": room_id,
-    })
-
-
+        # Mode B : Pipeline de développement (à implémenter par Personne 3/4)
+        return JsonResponse({
+            "error": "Mode B not yet implemented",
+            "message": "Mode B (Development Pipeline) is being developed by Personne 3 and 4",
+            "mode": "B"
+        }, status=501)
+    
+    elif mode == "C":
+        # Mode C : Rapport complet (à implémenter par Personne 4)
+        return JsonResponse({
+            "error": "Mode C not yet implemented",
+            "message": "Mode C (Complete Report) is being developed by Personne 4",
+            "mode": "C"
+        }, status=501)
+    
+    else:
+        return JsonResponse({"error": f"Invalid mode: {mode}"}, status=400)
 def download_pdf(request, session_id):
     """
     Génère un PDF pour n'importe quel mode (A, B, C).
-    Le contenu est générique mais peut être personnalisé selon le mode.
+    Utilise les vraies données du ReportAgent depuis la base de données.
     """
-    audit_id = f"SF-AUDIT-20260616-{session_id[:4].upper()}"
+    try:
+        from apps.api.models import AnalysisSession
+        
+        # Récupérer la session depuis la base de données
+        session = AnalysisSession.objects.get(room_id=session_id)
+        
+        # Extraire les données du résultat JSON
+        result_data = session.result_json
+        audit_id = result_data.get("audit_id", f"SF-AUDIT-{session_id[:8].upper()}")
+        final_report = result_data.get("final_report", "Rapport non disponible")
+        mode = result_data.get("mode", "A")
+        decision = result_data.get("decision", "N/A")
+        
+        # Construire le texte du rapport à partir des agents
+        report_lines = []
+        report_lines.append("=" * 80)
+        report_lines.append(f"RAPPORT D'ANALYSE SECUREFLOW AI — MODE {mode}")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+        report_lines.append(f"ID Audit       : {audit_id}")
+        report_lines.append(f"Session        : {session_id}")
+        report_lines.append(f"Date           : {session.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+        report_lines.append(f"Mode           : {session.get_mode_display()}")
+        report_lines.append(f"Type d'entrée  : {session.get_input_type_display()}")
+        report_lines.append(f"Décision       : {decision}")
+        
+        if session.project_label:
+            report_lines.append(f"Projet         : {session.project_label}")
+        
+        if session.duration_seconds:
+            report_lines.append(f"Durée          : {session.duration_seconds}s")
+        
+        report_lines.append("")
+        report_lines.append("=" * 80)
+        report_lines.append("RÉSULTATS DES AGENTS")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+        
+        # Ajouter les résultats de chaque agent
+        agents = result_data.get("agents", [])
+        for i, agent in enumerate(agents, 1):
+            agent_name = agent.get("name", "Agent inconnu")
+            agent_content = agent.get("content", "Pas de contenu")
+            
+            report_lines.append(f"{i}. {agent_name}")
+            report_lines.append("-" * 80)
+            report_lines.append(agent_content)
+            report_lines.append("")
+        
+        report_lines.append("=" * 80)
+        report_lines.append("RAPPORT FINAL")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+        report_lines.append(final_report)
+        report_lines.append("")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+        report_lines.append("Ce rapport a été généré automatiquement par SecureFlow AI.")
+        report_lines.append("Pour plus d'informations : https://secureflow-ai.com")
+        
+        report_text = "\n".join(report_lines)
+        
+    except AnalysisSession.DoesNotExist:
+        # Session non trouvée
+        audit_id = f"SF-AUDIT-{session_id[:8].upper()}"
+        report_text = f"""ERREUR - SESSION NON TROUVÉE
+
+Session ID : {session_id}
+
+La session demandée n'existe pas dans la base de données.
+Veuillez vérifier l'ID de session et réessayer.
+
+Si le problème persiste, contactez le support technique."""
+        
+        return JsonResponse({
+            "error": "Session not found",
+            "session_id": session_id
+        }, status=404)
     
-    # Contenu générique pour tous les modes
-    report_text = f"""RAPPORT D'ANALYSE SECUREFLOW AI
+    except Exception as e:
+        # Autre erreur
+        audit_id = f"SF-AUDIT-{session_id[:8].upper()}"
+        report_text = f"""ERREUR LORS DE LA GÉNÉRATION DU RAPPORT
 
-ID : {audit_id}
-Session : {session_id}
+Session ID : {session_id}
+Erreur : {str(e)}
 
-Ce rapport contient les résultats de l'analyse effectuée par les agents IA de SecureFlow.
-
-RÉSUMÉ DES AGENTS :
-
-ScannerAgent : Analyse complète du code source et détection des zones sensibles.
-
-ThreatAgent : Identification des menaces et vulnérabilités potentielles.
-
-ComplianceAgent : Vérification de la conformité aux standards OWASP, CWE et RGPD.
-
-RiskAgent / MetricsAgent : Évaluation des risques et calcul des métriques de qualité.
-
-DecisionAgent / ReportAgent : Recommandations finales et plan d'action.
-
-CONCLUSION :
-
-Tous les résultats détaillés sont disponibles dans l'interface web.
-Ce rapport PDF sert de document officiel pour archivage et partage.
-
-Pour plus d'informations, consultez : https://secureflow-ai.com"""
-
+Une erreur s'est produite lors de la récupération des données.
+Veuillez réessayer ou contactez le support technique."""
+        
+        return JsonResponse({
+            "error": "PDF generation failed",
+            "message": str(e),
+            "session_id": session_id
+        }, status=500)
+    
+    # Générer le PDF avec les vraies données
     pdf_bytes = generate_audit_pdf(
-        title="Rapport d'Analyse SecureFlow AI",
+        title=f"Rapport d'Analyse SecureFlow AI - Mode {mode}",
         report_text=report_text,
         audit_id=audit_id,
     )
+    
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="secureflow-{audit_id}.pdf"'
     return response
-
-
 @require_http_methods(["GET"])
 def room_messages(request, room_id):
     """
