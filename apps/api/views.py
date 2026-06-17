@@ -89,11 +89,18 @@ def analyze(request):
             # Ajouter session_id pour compatibilité avec l'interface
             result["session_id"] = result.get("room_id", str(uuid.uuid4()))
             
+            # Générer un audit_id si absent
+            audit_id = result.get("audit_id")
+            if not audit_id:
+                room_id = result.get("room_id", str(uuid.uuid4()))
+                audit_id = f"SF-AUDIT-{room_id[:8].upper()}"
+                result["audit_id"] = audit_id
+            
             # Sauvegarder en base de données
             session = AnalysisSession.objects.create(
                 mode=mode,
-                room_id=result["room_id"],
-                audit_id=result.get("audit_id", ""),
+                room_id=result.get("room_id", str(uuid.uuid4())),
+                audit_id=audit_id,
                 input_type=input_type,
                 input_source=data.get("github_url", "") if input_type == "github" else "",
                 project_label=project_label,
