@@ -56,6 +56,18 @@ Répète pour les 13 agents.
 
 ---
 
+## Écrire dans la Band Room (validation humaine)
+
+Pour répondre **APPROUVE** / **REJETE** dans Band (pas seulement via l'UI web), votre compte humain doit être **participant** de la Room. SecureFlow l'ajoute automatiquement si vous configurez :
+
+```env
+BAND_OWNER_USER_ID=votre-uuid-compte-band
+```
+
+Trouver l'UUID : **band.ai → Settings → Profile** (ou l'ID utilisateur affiché sur votre compte). Sans cette variable, seuls les agents peuvent poster — Band affiche *"Only your agent is a participant"*.
+
+---
+
 ## Comment ils collaborent dans le code
 
 ```
@@ -88,9 +100,9 @@ Chaque agent a **sa propre identité** visible dans la Band Room.
 
 ## Ordre recommandé (ne pas tout faire d'un coup)
 
-1. **Aujourd'hui** : crée les **5 agents Mode A** + Groq → teste Mode A
-2. **Ensuite** : Personne 3 crée ses 3 agents Mode B (Faisability, Architect, Design)
-3. **Ensuite** : Personne 4 crée ses agents (Dev, Security, QA, Metrics, Report)
+1. **D'abord** : configure les **5 agents Mode A** + LLM → teste Audit-to-Fix
+2. **Ensuite** : ajoute les agents Mode B (Faisability, Architect, Design)
+3. **Enfin** : complète avec Dev, Security, QA, Metrics, Report
 
 Tu peux aussi créer les 13 d'un coup si tu préfères — le `.env` est déjà prêt.
 

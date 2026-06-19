@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SecureFlow">
+  <defs>
+    <linearGradient id="sfFav" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#sfFav)"/>
+  <path d="M32 12 L48 18 V32 C48 42 41 49 32 52 C23 49 16 42 16 32 V18 Z"
+        fill="#ffffff" fill-opacity="0.16"
+        stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M24 32.5 L29.5 38 L41 26"
+        fill="none" stroke="#ffffff" stroke-width="4.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

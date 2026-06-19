@@ -27,14 +27,14 @@ python manage.py runserver
 ```
 apps/
   agents/          ← BaseAgent, clients Band/LLM, tous les agents IA
-    mode_a/        ← Personne 1 — audit sécurité (5 agents)
-    mode_b/        ← Personne 3 — faisabilité, archi, design
-    mode_c/        ← Personne 4 — métriques, rapport
-  orchestrator/    ← Personne 1 (J2) — enchaîne les agents
-  ingestion/       ← Personne 2 — GitHub, ZIP
-  api/             ← Personne 2 — routes Django
-workflows/         ← définitions Mode A / B / C
-templates/         ← Personne 5 — interface web
+    mode_a/        ← audit sécurité (Scanner, Threat, Compliance, Risk, Decision)
+    mode_b/        ← faisabilité, archi, design, dev, sécu, QA
+    mode_c/        ← métriques, rapport
+  orchestrator/    ← pipeline Audit-to-Fix
+  ingestion/       ← GitHub, ZIP
+  api/             ← routes Django
+workflows/         ← points d'entrée des pipelines
+templates/         ← interface web
 scripts/           ← tests manuels
 ```
 
@@ -82,9 +82,20 @@ python manage.py run_mode_a --file scripts/sample_flask.py
 python manage.py run_mode_a --text "print('hello')"
 ```
 
-## Intégration API (Personne 2)
+## Test Mode B (6 agents)
 
-Voir [docs/INTEGRATION_PERSONNE_2.md](./docs/INTEGRATION_PERSONNE_2.md).
+```bash
+python manage.py run_mode_b --text "Application todo-list avec authentification"
+python scripts/test_mode_b.py
+```
+
+## Test Mode C (5 agents)
+
+```bash
+python manage.py run_mode_c --file scripts/sample_flask.py
+```
+
+## Intégration API
 
 Point d'entrée :
 
@@ -94,6 +105,8 @@ from apps.orchestrator.services import run_security_audit_json
 response = run_security_audit_json(project_content, project_label="mon-projet")
 ```
 
+Voir [docs/API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) et [docs/FONCTIONNEMENT_COMPLET.md](./docs/FONCTIONNEMENT_COMPLET.md).
+
 ## Test rapide du ScannerAgent seul
 
 ```bash
@@ -102,21 +115,9 @@ python scripts/test_scanner_agent.py
 
 Crée une Band Room, dépose un mini-projet Flask, lance ScannerAgent.
 
-## Branches Git (règle équipe)
+## Documentation
 
-- Une branche par personne : `personne-1-orchestrator`, `personne-2-backend`, etc.
-- Pas de push direct sur `main` sans validation Personne 1
-
-## Guides équipe (autonomes)
-
-Voir **[docs/README_EQUIPE.md](./docs/README_EQUIPE.md)** — un fichier `.md` par membre avec variables, dossiers, code et tests.
-
-## Contacts
-
-| Rôle | Dossiers principaux |
-|------|---------------------|
-| Personne 1 (Tech Lead) | `apps/agents/base.py`, `apps/orchestrator/`, `apps/agents/mode_a/` |
-| Personne 2 (Backend) | `apps/ingestion/`, `apps/api/` |
-| Personne 3 (Mode B conception) | `apps/agents/mode_b/` |
-| Personne 4 (Mode B dev + Mode C) | `apps/agents/mode_b/`, `apps/agents/mode_c/` |
-| Personne 5 (UI + PDF) | `templates/`, déploiement |
+- [docs/SETUP_ENV.md](./docs/SETUP_ENV.md) — configuration `.env`
+- [docs/SETUP_BAND_13_AGENTS.md](./docs/SETUP_BAND_13_AGENTS.md) — agents Band
+- [docs/FONCTIONNEMENT_COMPLET.md](./docs/FONCTIONNEMENT_COMPLET.md) — architecture et flux
+- [docs/API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md) — endpoints REST

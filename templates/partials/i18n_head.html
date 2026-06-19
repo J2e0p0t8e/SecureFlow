@@ -1,0 +1,12 @@
+{% load static %}
+<script>
+(function () {
+  var k = "secureflow-locale";
+  var t = localStorage.getItem(k);
+  if (t !== "en" && t !== "fr") {
+    t = (navigator.language || "").toLowerCase().startsWith("en") ? "en" : "fr";
+  }
+  document.documentElement.lang = t;
+})();
+</script>
+<script defer src="{% static 'js/i18n.js' %}"></script>

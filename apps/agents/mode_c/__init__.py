@@ -1,6 +1,6 @@
-# Mode C — Analyse et rapport PDF (5 agents)
-# Réutilise Scanner, Threat, Compliance du Mode A (Personne 1)
-# Ajoute Metrics et Report (Personne 4)
+# Mode C — Audit formel + rapport PDF (5 agents)
+# Scanner/Threat/Compliance : prompts approfondis (workflow_mode=C)
+# Metrics + Report : livrable client
 
 from apps.agents.mode_a.scanner import ScannerAgent
 from apps.agents.mode_a.threat import ThreatAgent
@@ -25,5 +25,3 @@ __all__ = [
     "ReportAgent",
     "MODE_C_AGENT_CLASSES",
 ]
-
-# Made with Bob

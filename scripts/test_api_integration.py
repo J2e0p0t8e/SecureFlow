@@ -189,5 +189,3 @@ if __name__ == "__main__":
     else:
         print("\n⚠️ Certains tests ont échoué. Vérifiez la configuration.")
         sys.exit(1)
-
-# Made with Bob

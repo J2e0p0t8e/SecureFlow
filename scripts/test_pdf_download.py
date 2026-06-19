@@ -115,5 +115,3 @@ def test_pdf_download():
 
 if __name__ == '__main__':
     test_pdf_download()
-
-# Made with Bob

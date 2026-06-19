@@ -1,4 +1,4 @@
-"""Agents du Mode A — Security Audit."""
+"""Agents du Mode A — Triage rapide (3 agents)."""
 
 from apps.agents.mode_a.compliance import ComplianceAgent
 from apps.agents.mode_a.decision import DecisionAgent
@@ -9,8 +9,6 @@ from apps.agents.mode_a.threat import ThreatAgent
 MODE_A_AGENT_CLASSES = [
     ScannerAgent,
     ThreatAgent,
-    ComplianceAgent,
-    RiskAgent,
     DecisionAgent,
 ]
 

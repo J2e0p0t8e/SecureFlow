@@ -40,7 +40,7 @@ BAND_BASE_URL=https://app.band.ai
 
 - Chaque audit Mode A crée une **Band Room** (salon de discussion)
 - Chaque agent (Scanner, Threat, etc.) **écrit** son analyse dans cette Room
-- Personne 5 affichera la Room en live dans l'interface
+- L'interface web affiche la Room en direct pendant l'analyse
 - Tu n'as besoin que **d'un seul agent Band** pour tout le pipeline
 
 ---

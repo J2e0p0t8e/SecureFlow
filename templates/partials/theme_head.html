@@ -1,0 +1,13 @@
+{% load static %}
+<script>
+(function () {
+  var k = "secureflow-theme";
+  var t = localStorage.getItem(k);
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
+<link rel="stylesheet" href="{% static 'css/theme.css' %}">
+<script defer src="{% static 'js/theme.js' %}"></script>

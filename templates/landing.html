@@ -1,0 +1,332 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="SecureFlow AI — Audit RGPD/OWASP pour équipes SaaS européennes. Agents Band AI, recrutement dynamique, remédiation supervisée."/>
+  <title>SecureFlow AI — Accueil</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'favicon.svg' %}">
+  <meta name="theme-color" content="#7C3AED">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  {% include "partials/theme_head.html" %}
+  {% include "partials/i18n_head.html" %}
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Segoe UI',system-ui,sans-serif;font-size:18px;line-height:1.55;background:var(--sf-bg);color:var(--sf-text);min-height:100vh;overflow-x:hidden;transition:background .25s ease,color .25s ease}
+
+    .geo1{position:fixed;top:-80px;right:-80px;width:320px;height:320px;border-radius:50%;background:var(--sf-geo-1);border:1px solid var(--sf-geo-1-border);pointer-events:none;z-index:0}
+    .geo2{position:fixed;bottom:80px;left:-80px;width:240px;height:240px;background:var(--sf-geo-2);border:1px solid var(--sf-geo-2-border);transform:rotate(45deg);pointer-events:none;z-index:0}
+    .geo3{position:fixed;top:40%;right:5%;width:90px;height:90px;background:var(--sf-geo-3-bg);border:1px solid var(--sf-geo-3-border);border-radius:14px;transform:rotate(18deg);pointer-events:none;z-index:0}
+
+    .wrap{max-width:960px;margin:0 auto;padding:0 1.25rem;position:relative;z-index:1}
+
+    /* Nav */
+    nav{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;border-bottom:0.5px solid var(--sf-border-nav);margin-bottom:0}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--sf-text);font-weight:700;font-size:19px;letter-spacing:-0.3px}
+    .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#4F46E5);display:flex;align-items:center;justify-content:center}
+    .logo-icon i{font-size:18px;color:#fff}
+    .nav-links{display:flex;align-items:center;gap:12px}
+    .nav-link{color:var(--sf-text-muted);text-decoration:none;font-size:15px;padding:6px 12px;border-radius:8px;transition:color .2s,background .2s}
+    .nav-link:hover{color:var(--sf-text);background:var(--sf-surface-hover)}
+    .btn-nav{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:600;text-decoration:none;transition:transform .2s,box-shadow .2s}
+    .btn-nav:hover{transform:translateY(-1px);box-shadow:0 6px 20px #7C3AED44}
+
+    /* Hero */
+    .hero{text-align:center;padding:4rem 0 3rem}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:var(--sf-surface-pill);border:0.5px solid var(--sf-border);border-radius:999px;padding:5px 16px;font-size:14px;color:var(--sf-text-faint);margin-bottom:20px}
+    .pill i{color:#A78BFA}
+    .hero h1{font-size:clamp(2.35rem,5.5vw,3.35rem);font-weight:700;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;background:var(--sf-hero-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero .lead{font-size:18px;color:var(--sf-text-muted);line-height:1.7;max-width:600px;margin:0 auto 28px}
+    .hero-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:48px}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;border:none;border-radius:12px;font-size:17px;font-weight:600;text-decoration:none;transition:all .25s}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px #7C3AED55}
+    .btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--sf-surface);border:0.5px solid var(--sf-border-strong);color:var(--sf-text);border-radius:12px;font-size:17px;font-weight:600;text-decoration:none;transition:all .25s}
+    .btn-secondary:hover{background:var(--sf-surface-hover);border-color:var(--sf-border-hover)}
+
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:520px;margin:0 auto}
+    .stat{background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:12px;padding:16px 12px}
+    .stat strong{display:block;font-size:22px;font-weight:700;color:#A78BFA;margin-bottom:2px}
+    .stat span{font-size:13px;color:var(--sf-text-faint)}
+
+    /* Sections */
+    section{padding:3.5rem 0}
+    .section-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7C3AED;margin-bottom:8px}
+    .section-title{font-size:clamp(1.55rem,3.2vw,2rem);font-weight:700;margin-bottom:12px;letter-spacing:-0.3px;color:var(--sf-text)}
+    .section-desc{font-size:16px;color:var(--sf-text-muted);line-height:1.7;margin-bottom:28px;max-width:640px}
+
+    /* About */
+    .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .about-card{background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:16px;padding:1.5rem}
+    .about-card i{font-size:28px;margin-bottom:12px;display:block}
+    .about-card.a i{color:#A78BFA}
+    .about-card.b i{color:#38BDF8}
+    .about-card h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--sf-text)}
+    .about-card p{font-size:15px;color:var(--sf-text-muted);line-height:1.65}
+
+    /* Modes */
+    .modes-grid{display:flex;flex-direction:column;gap:16px}
+    .mode-block{background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:18px;padding:1.5rem;position:relative;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s}
+    .mode-block:hover{border-color:var(--sf-border-hover);transform:translateY(-2px);box-shadow:0 8px 24px var(--sf-shadow-soft)}
+    .mode-block::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .mode-block.a::before{background:linear-gradient(90deg,#7C3AED,#A78BFA)}
+    .mode-block.b::before{background:linear-gradient(90deg,#0EA5E9,#38BDF8)}
+    .mode-block.c::before{background:linear-gradient(90deg,#10B981,#34D399)}
+    .mode-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+    .mode-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .mode-block.a .mode-icon{background:#7C3AED22}.mode-block.a .mode-icon i{color:#A78BFA}
+    .mode-block.b .mode-icon{background:#0EA5E922}.mode-block.b .mode-icon i{color:#38BDF8}
+    .mode-block.c .mode-icon{background:#10B98122}.mode-block.c .mode-icon i{color:#34D399}
+    .mode-icon i{font-size:22px}
+    .mode-head h3{font-size:18px;font-weight:600;margin-bottom:4px;color:var(--sf-text)}
+    .mode-tag{font-size:13px;color:var(--sf-text-faint)}
+    .mode-desc{font-size:15px;color:var(--sf-text-muted);line-height:1.65;margin-bottom:14px}
+    .agent-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--sf-surface-inset);border:0.5px solid var(--sf-border);color:var(--sf-text-muted)}
+    .mode-block.a .chip{border-color:#7C3AED33;color:#C4B5FD}
+    .mode-block.b .chip{border-color:#0EA5E933;color:#7DD3FC}
+    .mode-block.c .chip{border-color:#10B98133;color:#6EE7B7}
+
+    /* Steps */
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .step{text-align:center;padding:1.25rem .75rem;background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:14px}
+    .step-num{width:32px;height:32px;border-radius:50%;background:#7C3AED22;border:0.5px solid #7C3AED44;color:#A78BFA;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+    .step h4{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--sf-text)}
+    .step p{font-size:13px;color:var(--sf-text-faint);line-height:1.5}
+
+    /* Stack */
+    .stack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+    .stack-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:12px;font-size:15px;color:var(--sf-text-body);transition:border-color .2s,background .2s}
+    .stack-item:hover{border-color:#7C3AED44;background:var(--sf-surface-hover)}
+    .stack-item i{font-size:20px;color:#A78BFA;flex-shrink:0}
+    .stack-note{margin-top:20px;padding:14px 18px;background:#7C3AED10;border:0.5px solid #7C3AED28;border-radius:12px;font-size:15px;color:var(--sf-text-muted);line-height:1.65}
+    .stack-note strong{color:#C4B5FD;font-weight:600}
+
+    /* Band features */
+    .band-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px}
+    .band-card{background:var(--sf-surface);border:0.5px solid var(--sf-border);border-radius:14px;padding:1.25rem;text-align:left}
+    .band-card i{font-size:24px;color:#A78BFA;margin-bottom:10px;display:block}
+    .band-card h4{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--sf-text)}
+    .band-card p{font-size:14px;color:var(--sf-text-muted);line-height:1.55}
+    .mode-block.legacy{opacity:.92}
+    .mode-block.legacy .mode-tag{font-style:italic}
+    .modes-secondary{margin-top:8px;font-size:14px;color:var(--sf-text-faint);margin-bottom:12px}
+
+    /* CTA */
+    .cta-box{text-align:center;padding:3rem 2rem;background:linear-gradient(135deg,#7C3AED15,#4F46E515);border:0.5px solid #7C3AED33;border-radius:20px;margin:2rem 0 3rem}
+    .cta-box h2{font-size:1.5rem;font-weight:700;margin-bottom:10px;color:var(--sf-text)}
+    .cta-box p{font-size:16px;color:var(--sf-text-muted);margin-bottom:24px}
+
+    footer{text-align:center;padding:2rem 0;border-top:0.5px solid var(--sf-border-nav);color:var(--sf-footer-text);font-size:14px}
+    footer a{color:#A78BFA;text-decoration:none}
+
+    @media(max-width:720px){
+      .about-grid,.steps,.band-grid{grid-template-columns:1fr}
+      .stats{grid-template-columns:1fr}
+      .nav-link{display:none}
+      .hero{padding:2.5rem 0 2rem}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="geo1"></div>
+  <div class="geo2"></div>
+  <div class="geo3"></div>
+
+  <div class="wrap">
+    <nav>
+      <a href="/" class="logo">
+        <div class="logo-icon"><i class="ti ti-shield-lock"></i></div>
+        SecureFlow AI
+      </a>
+      <div class="nav-links">
+        <a href="#band" class="nav-link" data-i18n="nav.band">Band Room</a>
+        <a href="#modes" class="nav-link" data-i18n="nav.modes">Produit</a>
+        <a href="#fonctionnement" class="nav-link" data-i18n="nav.how">Fonctionnement</a>
+        {% include "partials/lang_toggle.html" %}
+        {% include "partials/theme_toggle.html" %}
+        <a href="/app/" class="btn-nav"><i class="ti ti-player-play"></i> <span data-i18n="nav.launch">Lancer la plateforme</span></a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="pill"><i class="ti ti-sparkles"></i> <span data-i18n="pill.hackathon">Band of Agents Hackathon 2026</span></div>
+      <h1 data-i18n="hero.title">Passez vos audits RGPD/OWASP sans bloquer votre roadmap</h1>
+      <p class="lead" data-i18n="hero.lead">
+        SecureFlow AI aide les équipes SaaS européennes à auditer leur code, trancher en GO/NO-GO,
+        et corriger automatiquement ce qu'il trouve — sous supervision humaine, dans une Band Room
+        où les agents se recrutent et débattent en direct.
+      </p>
+      <div class="hero-actions">
+        <a href="/app/" class="btn-primary"><i class="ti ti-rocket"></i> <span data-i18n="hero.cta">Lancer un audit-to-fix</span></a>
+        <a href="#band" class="btn-secondary"><i class="ti ti-messages"></i> <span data-i18n="hero.discover">Voir la collaboration Band</span></a>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong>1</strong><span data-i18n="stat.modes">pipeline audit-to-fix</span></div>
+        <div class="stat"><strong>13</strong><span data-i18n="stat.agents">agents Band recrutables</span></div>
+        <div class="stat"><strong>Band</strong><span data-i18n="stat.room">source de vérité LLM</span></div>
+      </div>
+    </header>
+
+    <section id="band">
+      <div class="section-label" data-i18n="band.label">Band of Agents</div>
+      <h2 class="section-title" data-i18n="band.title">Band est le moteur, pas un widget chat</h2>
+      <p class="section-desc" data-i18n="band.desc">
+        Chaque agent lit l'historique Band avant d'agir. Recrutement conditionnel, escalades,
+        désaccords visibles et validation humaine bloquante — tout est tracé dans la Room.
+      </p>
+      <div class="band-grid">
+        <div class="band-card">
+          <i class="ti ti-user-plus"></i>
+          <h4 data-i18n="band.recruit.title">Recrutement dynamique</h4>
+          <p data-i18n="band.recruit.desc">ComplianceAgent ou RiskAgent apparaissent dans la Room quand Threat le justifie — pas une liste figée au démarrage.</p>
+        </div>
+        <div class="band-card">
+          <i class="ti ti-arrows-split"></i>
+          <h4 data-i18n="band.disagree.title">Désaccord & arbitrage</h4>
+          <p data-i18n="band.disagree.desc">Si Threat et Compliance divergent (≥3 pts), un event DÉSACCORD DÉTECTÉ force DecisionAgent à trancher explicitement.</p>
+        </div>
+        <div class="band-card">
+          <i class="ti ti-user-check"></i>
+          <h4 data-i18n="band.human.title">Validation humaine</h4>
+          <p data-i18n="band.human.desc">Décision CRITIQUE/CORRIGER → pause obligatoire. L'opérateur approuve ou rejette la remédiation avant DevAgent.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="projet">
+      <div class="section-label" data-i18n="project.label">Le projet</div>
+      <h2 class="section-title" data-i18n="project.title">Qu'est-ce que SecureFlow AI ?</h2>
+      <p class="section-desc" data-i18n="project.desc">
+        Réduisez le temps de triage vulnérabilités avant mise en conformité RGPD/OWASP.
+        Un seul flux : scan → menaces → décision → (remédiation ZIP ou rapport PDF).
+        Valeur métier chiffrable : heures gagnées sur le tri manuel + patch proposé à relire.
+      </p>
+      <div class="about-grid">
+        <div class="about-card a">
+          <i class="ti ti-users-group"></i>
+          <h3 data-i18n="about.collab.title">Collaboration multi-agents</h3>
+          <p data-i18n="about.collab.desc">
+            La Band Room est la source de vérité : chaque agent lit get_context() avant le LLM.
+            Recrutements, escalades et décisions humaines y sont publiés — sans contourner Band.
+          </p>
+        </div>
+        <div class="about-card b">
+          <i class="ti ti-shield-check"></i>
+          <h3 data-i18n="about.security.title">Sécurité by design</h3>
+          <p data-i18n="about.security.desc">
+            Verdict GO/NO-GO, score /10, checklist Fix now, patch ZIP ou PDF /100.
+            Remédiation texte-in/texte-out (fichiers corrigés à relire, jamais appliqués automatiquement).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="modes">
+      <div class="section-label" data-i18n="modes.label">Produit principal</div>
+      <h2 class="section-title" data-i18n="modes.title">Audit-to-Fix — un flux, deux livrables</h2>
+      <p class="section-desc" data-i18n="modes.desc">
+        Le mode A n'est plus un triage figé à 3 agents : la phase évolue pendant l'exécution.
+        Branche remédiation (CRITIQUE/CORRIGER) → patch ZIP. Branche propre → rapport PDF.
+      </p>
+      <div class="modes-grid">
+        <article class="mode-block a">
+          <div class="mode-head">
+            <div class="mode-icon"><i class="ti ti-shield-lock"></i></div>
+            <div>
+              <h3 data-i18n="landing.modeA.title">Audit-to-Fix</h3>
+              <div class="mode-tag" data-i18n="landing.modeA.tag">Un seul produit · GitHub, ZIP ou code</div>
+            </div>
+          </div>
+          <p class="mode-desc" data-i18n="landing.modeA.desc">
+            scanning → triage → decision → validation humaine si besoin → remédiation (Dev/Security/QA + re-scan → ZIP)
+            ou reporting (Metrics/Report → PDF). Recrutement Compliance/Risk/Decision dynamique dans Band.
+          </p>
+          <div class="agent-chips">
+            <span class="chip">Scanner</span>
+            <span class="chip">Threat</span>
+            <span class="chip">Compliance*</span>
+            <span class="chip">Risk*</span>
+            <span class="chip">Decision</span>
+            <span class="chip">Feasibility*</span>
+            <span class="chip">Architect*</span>
+            <span class="chip">Design*</span>
+            <span class="chip">Dev*</span>
+            <span class="chip">Security*</span>
+            <span class="chip">QA*</span>
+            <span class="chip">Metrics*</span>
+            <span class="chip">Report*</span>
+          </div>
+          <p class="mode-desc" style="margin-top:12px;font-size:14px;opacity:.85" data-i18n="landing.deliverables">
+            * recrutés dynamiquement · ZIP = branche CRITIQUE/CORRIGER · PDF = branche PROPRE/SURVEILLER
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="fonctionnement">
+      <div class="section-label" data-i18n="how.label">Fonctionnement</div>
+      <h2 class="section-title" data-i18n="how.title">Comment ça marche ?</h2>
+      <p class="section-desc" data-i18n="how.desc">
+        Ouvrez votre démo sur la Band Room : c'est là que le jury voit recrutements, désaccords et validation humaine.
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4 data-i18n="step1.title">Importer le dépôt</h4>
+          <p data-i18n="step1.desc">GitHub, ZIP ou extrait de code — Scanner seed la Room Band.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4 data-i18n="step2.title">Observer la Room</h4>
+          <p data-i18n="step2.desc">Agents recrutés à la volée, escalades, désaccords, @mentions.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4 data-i18n="step3.title">Valider si CRITIQUE</h4>
+          <p data-i18n="step3.desc">Approuver la remédiation ou annuler — décision publiée dans Band.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h4 data-i18n="step4.title">Récupérer le livrable</h4>
+          <p data-i18n="step4.desc">Patch ZIP (remédiation) ou PDF formel (projet propre) + verdict /10.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="stack">
+      <div class="section-label" data-i18n="stack.label">Stack & partenaires</div>
+      <h2 class="section-title" data-i18n="stack.title">Technologie & prix hackathon</h2>
+      <p class="section-desc" data-i18n="stack.desc">
+        Band AI coordonne ; Featherless par défaut (modèles open-source) ;
+        AI/ML API pour MetricsAgent.
+      </p>
+      <div class="stack-grid">
+        <div class="stack-item"><i class="ti ti-brand-bandcamp"></i> Band AI</div>
+        <div class="stack-item"><i class="ti ti-feather"></i> Featherless</div>
+        <div class="stack-item"><i class="ti ti-cloud"></i> AI/ML API</div>
+        <div class="stack-item"><i class="ti ti-file-type-pdf"></i> ReportLab PDF</div>
+      </div>
+      <div class="stack-note" data-i18n-html="stack.note">
+        <strong>Partenaires hackathon.</strong> DevAgent (remédiation) s'appuie sur Featherless
+        (modèles open-source) ; MetricsAgent peut utiliser AI/ML API si les clés sont configurées.
+      </div>
+    </section>
+
+    <div class="cta-box">
+      <h2 data-i18n="cta.title">Prêt pour votre démo Band ?</h2>
+      <p data-i18n="cta.desc">Lancez un audit-to-fix et ouvrez la Band Room en premier plan.</p>
+      <a href="/app/" class="btn-primary"><i class="ti ti-player-play"></i> <span data-i18n="cta.btn">Accéder à la plateforme</span></a>
+    </div>
+
+    <footer>
+      <p data-i18n="footer.project">SecureFlow AI — Projet hackathon Band of Agents 2026</p>
+      <p style="margin-top:6px" data-i18n="footer.tagline">Auditer · Corriger · Conformité RGPD/OWASP</p>
+    </footer>
+  </div>
+
+</body>
+</html>

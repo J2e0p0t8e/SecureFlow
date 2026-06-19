@@ -1,65 +1,21 @@
 """
-Orchestrateur du Mode A — Security Audit.
-
-5 agents Band distincts collaborent dans une Room partagée.
+Orchestrateur Mode A — pipeline unifié Audit-to-Fix.
 """
 
 from __future__ import annotations
 
-import logging
-import re
-from dataclasses import dataclass, field
+from typing import Callable
 
 from apps.agents.base import AgentResult
-from apps.agents.mode_a import MODE_A_AGENT_CLASSES
-from apps.orchestrator.base import MultiAgentWorkflowRunner
+from apps.core.agent_output import extract_audit_id, extract_decision, extract_metadata_json, generate_id
+from apps.core.pipeline_context import get_ingestion_meta, get_locale
+from apps.orchestrator.audit_to_fix import AUDIT_TO_FIX_BAND_AGENTS, AuditToFixOrchestrator, AuditToFixRunResult
 
-logger = logging.getLogger(__name__)
-
-AUDIT_ID_PATTERN = re.compile(r"SF-AUDIT-\d{8}-\d{4}", re.IGNORECASE)
-
-MODE_A_BAND_AGENTS = [cls.name for cls in MODE_A_AGENT_CLASSES]
+MODE_A_BAND_AGENTS = AUDIT_TO_FIX_BAND_AGENTS
 
 
-@dataclass
-class ModeARunResult:
-    """Résultat complet d'un audit Mode A."""
-
-    room_id: str
-    results: list[AgentResult] = field(default_factory=list)
-    audit_id: str | None = None
-    decision: str | None = None
-
-    @property
-    def final_report(self) -> str:
-        if not self.results:
-            return ""
-        return self.results[-1].content
-
-    def to_dict(self) -> dict:
-        """Format JSON pour l'API Django (Personne 2)."""
-        return {
-            "mode": "A",
-            "room_id": self.room_id,
-            "decision": self.decision,
-            "audit_id": self.audit_id,
-            "final_report": self.final_report,
-            "agents": [
-                {"name": result.agent_name, "content": result.content}
-                for result in self.results
-            ],
-        }
-
-
-class ModeAOrchestrator(MultiAgentWorkflowRunner):
-    """
-    Pipeline Mode A : Scanner → Threat → Compliance → Risk → Decision.
-
-    Chaque étape utilise son propre compte Band AI.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(MODE_A_AGENT_CLASSES)
+class ModeAOrchestrator(AuditToFixOrchestrator):
+    """Alias — Mode A = Audit-to-Fix régulé (recrutement dynamique + remédiation)."""
 
     def run(
         self,
@@ -67,32 +23,34 @@ class ModeAOrchestrator(MultiAgentWorkflowRunner):
         *,
         task_id: str | None = None,
         project_label: str = "Projet",
-    ) -> ModeARunResult:
-        workflow = super().run(
+        on_room_created: Callable[[str], None] | None = None,
+        on_progress: Callable[[dict], None] | None = None,
+        ingestion_meta: dict | None = None,
+        locale: str | None = None,
+        resume_from_index: int = 0,
+        existing_results: list[AgentResult] | None = None,
+        existing_room_id: str | None = None,
+        skip_human_gate: bool = False,
+        resume_branch: str | None = None,
+    ) -> AuditToFixRunResult:
+        branch = resume_branch
+        if resume_from_index > 0 and existing_room_id and not branch:
+            branch = "remediation"
+
+        return super().run(
             project_content,
             task_id=task_id,
             initial_label=project_label,
-        )
-
-        decision_result = workflow.results[-1] if workflow.results else None
-        audit_id = _extract_audit_id(decision_result.content) if decision_result else None
-        decision = _extract_decision(decision_result.content) if decision_result else None
-
-        return ModeARunResult(
-            room_id=workflow.room_id,
-            results=workflow.results,
-            audit_id=audit_id,
-            decision=decision,
+            on_room_created=on_room_created,
+            on_progress=on_progress,
+            ingestion_meta=ingestion_meta,
+            locale=locale,
+            resume_branch=branch,
+            existing_results=existing_results,
+            existing_room_id=existing_room_id,
+            skip_human_gate=skip_human_gate,
         )
 
 
-def _extract_audit_id(text: str) -> str | None:
-    match = AUDIT_ID_PATTERN.search(text)
-    return match.group(0).upper() if match else None
-
-
-def _extract_decision(text: str) -> str | None:
-    for label in ("CRITIQUE", "CORRIGER", "SURVEILLER", "PROPRE"):
-        if re.search(rf"\b{label}\b", text, re.IGNORECASE):
-            return label
-    return None
+# Compatibilité imports existants
+ModeARunResult = AuditToFixRunResult

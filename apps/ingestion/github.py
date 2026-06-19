@@ -1,160 +1,279 @@
 """
 Module d'ingestion GitHub pour SecureFlow AI.
-Récupère le contenu d'un repo GitHub public via l'API GitHub (sans token).
+Récupère le contenu d'un repo GitHub public via l'API GitHub.
 """
 
+from __future__ import annotations
+
+import logging
 import re
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+from apps.ingestion.bundle import truncate_file_body
+from apps.ingestion.selectors import build_file_manifest, is_binary_path, select_paths
+from apps.ingestion.types import IngestionResult
+
+logger = logging.getLogger(__name__)
+
+GITHUB_API = "https://api.github.com"
+RAW_BASE = "https://raw.githubusercontent.com"
+
+# Cache d'ingestion en mémoire (TTL) — évite de re-cloner le même dépôt.
+_cache_lock = threading.Lock()
+_ingestion_cache: dict[tuple, tuple[float, IngestionResult]] = {}
 
 
-def parse_github_url(url: str) -> tuple[str, str, str]:
+def _cache_ttl() -> float:
+    return float(getattr(settings, "GITHUB_CACHE_TTL", 300))
+
+
+def _cache_get(key: tuple) -> IngestionResult | None:
+    ttl = _cache_ttl()
+    if ttl <= 0:
+        return None
+    with _cache_lock:
+        entry = _ingestion_cache.get(key)
+        if not entry:
+            return None
+        stored_at, result = entry
+        if time.time() - stored_at > ttl:
+            _ingestion_cache.pop(key, None)
+            return None
+        return result
+
+
+def _cache_set(key: tuple, result: IngestionResult) -> None:
+    if _cache_ttl() <= 0:
+        return
+    with _cache_lock:
+        _ingestion_cache[key] = (time.time(), result)
+        # Garde-fou mémoire : conserve les 32 entrées les plus récentes.
+        if len(_ingestion_cache) > 32:
+            oldest = sorted(_ingestion_cache.items(), key=lambda kv: kv[1][0])
+            for stale_key, _ in oldest[:-32]:
+                _ingestion_cache.pop(stale_key, None)
+
+
+def clear_ingestion_cache() -> None:
+    with _cache_lock:
+        _ingestion_cache.clear()
+
+
+def _request_timeout() -> float:
+    return float(getattr(settings, "GITHUB_REQUEST_TIMEOUT", 60))
+
+
+def _fetch_workers() -> int:
+    return max(1, int(getattr(settings, "GITHUB_FETCH_WORKERS", 12)))
+
+
+def _github_headers() -> dict[str, str]:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "SecureFlow-AI",
+    }
+    token = getattr(settings, "GITHUB_TOKEN", "") or ""
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def _github_session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update(_github_headers())
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        backoff_factor=0.6,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET",),
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_maxsize=_fetch_workers() + 4)
+    session.mount("https://", adapter)
+    return session
+
+
+def parse_github_url(url: str) -> tuple[str, str, str | None]:
     """
-    Parse une URL GitHub et retourne (owner, repo, branch).
-    
+    Parse une URL GitHub et retourne (owner, repo, branch_or_none).
+
     Exemples:
-        https://github.com/user/repo -> (user, repo, main)
+        https://github.com/user/repo -> (user, repo, None)
+        https://github.com/user/repo.git -> (user, repo, None)
         https://github.com/user/repo/tree/dev -> (user, repo, dev)
     """
-    parsed = urlparse(url)
+    parsed = urlparse(url.strip())
     path_parts = [p for p in parsed.path.split("/") if p]
-    
+
     if len(path_parts) < 2:
         raise ValueError(f"URL GitHub invalide : {url}")
-    
+
     owner = path_parts[0]
     repo = path_parts[1]
-    
-    # Détecter la branche si présente dans l'URL
-    branch = "main"
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+
+    branch: str | None = None
     if len(path_parts) >= 4 and path_parts[2] == "tree":
         branch = path_parts[3]
-    
+
     return owner, repo, branch
+
+
+def _github_error_message(response: requests.Response) -> str:
+    if response.status_code == 403:
+        return (
+            "Accès GitHub refusé (rate limit ou dépôt privé). "
+            "Ajoutez GITHUB_TOKEN dans .env ou réessayez plus tard."
+        )
+    if response.status_code == 404:
+        return "Dépôt ou branche GitHub introuvable — vérifiez l'URL."
+    return f"Erreur GitHub HTTP {response.status_code}"
+
+
+def _resolve_default_branch(session: requests.Session, owner: str, repo: str) -> str:
+    repo_url = f"{GITHUB_API}/repos/{owner}/{repo}"
+    response = session.get(repo_url, timeout=_request_timeout())
+    if response.status_code in (403, 404):
+        raise ValueError(_github_error_message(response))
+    response.raise_for_status()
+    data = response.json()
+    return data.get("default_branch") or "main"
+
+
+def _fetch_raw_file(
+    session: requests.Session,
+    owner: str,
+    repo: str,
+    branch: str,
+    path: str,
+) -> tuple[str, str | None, str | None]:
+    raw_url = f"{RAW_BASE}/{owner}/{repo}/{branch}/{path}"
+    try:
+        content_response = session.get(raw_url, timeout=_request_timeout())
+        if content_response.status_code >= 400:
+            return path, None, _github_error_message(content_response)
+        content = content_response.content.decode("utf-8")
+        return path, truncate_file_body(content, path), None
+    except UnicodeDecodeError:
+        return path, None, "fichier binaire ignoré"
+    except requests.RequestException as exc:
+        return path, None, str(exc)
 
 
 def fetch_github_project(
     url: str,
     max_files: int = 50,
     branch: Optional[str] = None,
-) -> str:
-    """
-    Récupère le contenu d'un repo GitHub public et retourne une représentation textuelle.
-    
-    Args:
-        url: URL du repo GitHub (ex: https://github.com/user/repo)
-        max_files: Nombre maximum de fichiers à récupérer
-        branch: Branche à utiliser (None = détection auto depuis URL ou 'main')
-    
-    Returns:
-        String contenant le chemin et contenu de chaque fichier
-    
-    Raises:
-        ValueError: URL invalide
-        requests.HTTPError: Erreur API GitHub (404, 403, etc.)
-    """
+) -> IngestionResult:
+    """Récupère le contenu d'un repo GitHub public."""
     owner, repo, detected_branch = parse_github_url(url)
-    branch = branch or detected_branch
-    
-    # 1. Récupérer l'arbre des fichiers via API GitHub
-    tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-    
-    try:
-        response = requests.get(tree_url, timeout=10)
-        response.raise_for_status()
-    except requests.HTTPError as e:
-        if e.response.status_code == 404:
-            # Essayer avec 'master' si 'main' échoue
-            if branch == "main":
-                return fetch_github_project(url, max_files, branch="master")
-            raise ValueError(f"Repo ou branche introuvable : {owner}/{repo} (branche: {branch})")
-        raise
-    
+    session = _github_session()
+    branch = branch or detected_branch or _resolve_default_branch(session, owner, repo)
+    source_label = f"github:{owner}/{repo}@{branch}"
+
+    cache_key = (owner.lower(), repo.lower(), branch, int(max_files))
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        logger.info("GitHub ingestion %s/%s@%s — servi depuis le cache", owner, repo, branch)
+        return cached
+
+    tree_url = f"{GITHUB_API}/repos/{owner}/{repo}/git/trees/{branch}"
+    response = session.get(
+        tree_url,
+        params={"recursive": "1"},
+        timeout=_request_timeout(),
+    )
+
+    if response.status_code == 404 and branch == "main":
+        return fetch_github_project(url, max_files, branch="master")
+
+    if response.status_code in (403, 404):
+        raise ValueError(_github_error_message(response))
+    response.raise_for_status()
+
     tree_data = response.json()
-    
     if "tree" not in tree_data:
         raise ValueError(f"Réponse API GitHub invalide pour {owner}/{repo}")
-    
-    # 2. Filtrer et prioriser les fichiers
-    files = []
+
+    files: list[str] = []
     for item in tree_data["tree"]:
-        if item["type"] != "blob":  # Ignorer les dossiers
+        if item.get("type") != "blob":
             continue
-        
+
         path = item["path"]
-        
-        # Ignorer les dossiers exclus
         path_parts = path.split("/")
         if any(part in settings.INGESTION_IGNORE_DIRS for part in path_parts):
             continue
-        
-        # Ignorer les fichiers binaires courants
-        if path.endswith((".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".exe", ".dll", ".so")):
+        if is_binary_path(path):
             continue
-        
-        files.append({"path": path, "url": item["url"]})
-    
-    # 3. Prioriser les fichiers importants
-    priority_extensions = {".py", ".js", ".ts", ".jsx", ".tsx", ".env", ".json", ".yml", ".yaml", ".md"}
-    priority_names = {"requirements.txt", "package.json", "Dockerfile", "docker-compose.yml", "README.md"}
-    
-    def priority_score(file_info):
-        path = file_info["path"]
-        name = path.split("/")[-1]
-        ext = "." + name.split(".")[-1] if "." in name else ""
-        
-        score = 0
-        if name in priority_names:
-            score += 100
-        if ext in priority_extensions:
-            score += 50
-        if "test" not in path.lower():
-            score += 10
-        return score
-    
-    files.sort(key=priority_score, reverse=True)
-    files = files[:max_files]
-    
-    # 4. Télécharger le contenu de chaque fichier
+
+        files.append(path)
+
+    total_files = len(files)
+    selected, truncated = select_paths(files, max_files)
+    manifest = build_file_manifest(files, selected)
+
     project_content = f"# Projet GitHub : {owner}/{repo} (branche: {branch})\n"
-    project_content += f"# Fichiers analysés : {len(files)}/{len(tree_data['tree'])}\n\n"
-    
-    for file_info in files:
-        path = file_info["path"]
-        
-        # Utiliser raw.githubusercontent.com pour télécharger le contenu
-        raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}"
-        
-        try:
-            content_response = requests.get(raw_url, timeout=5)
-            content_response.raise_for_status()
-            
-            # Essayer de décoder en UTF-8, ignorer si binaire
-            try:
-                content = content_response.content.decode("utf-8")
-            except UnicodeDecodeError:
-                continue  # Ignorer les fichiers binaires
-            
-            project_content += f"\n{'='*80}\n"
-            project_content += f"Fichier : {path}\n"
-            project_content += f"{'='*80}\n"
-            project_content += content
-            project_content += f"\n\n"
-            
-        except Exception as e:
-            # Continuer même si un fichier échoue
-            project_content += f"\n[Erreur lors de la récupération de {path} : {e}]\n\n"
-            continue
-    
-    return project_content
+    project_content += f"# Fichiers analysés : {len(selected)}/{total_files}\n\n"
+    project_content += manifest
+    project_content += "\n\n"
+
+    workers = min(_fetch_workers(), max(1, len(selected)))
+    loaded = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [
+            pool.submit(_fetch_raw_file, session, owner, repo, branch, path)
+            for path in selected
+        ]
+        for future in as_completed(futures):
+            path, content, error = future.result()
+            if content:
+                loaded += 1
+                project_content += (
+                    f"\n{'=' * 80}\nFichier : {path}\n{'=' * 80}\n{content}\n\n"
+                )
+            elif error:
+                project_content += f"\n[Erreur lors de la récupération de {path} : {error}]\n\n"
+
+    if loaded == 0:
+        raise ValueError(
+            f"Aucun fichier texte récupérable dans {owner}/{repo}. "
+            "Vérifiez l'URL, la branche, ou définissez GITHUB_TOKEN dans .env."
+        )
+
+    logger.info(
+        "GitHub ingestion %s/%s@%s — %s/%s fichiers chargés",
+        owner,
+        repo,
+        branch,
+        loaded,
+        total_files,
+    )
+
+    result = IngestionResult(
+        content=project_content,
+        files_analyzed=loaded,
+        files_total=total_files,
+        truncated=truncated,
+        source_label=source_label,
+        file_manifest=manifest,
+    )
+    _cache_set(cache_key, result)
+    return result
 
 
 def is_valid_github_url(url: str) -> bool:
     """Vérifie si une URL est une URL GitHub valide."""
-    pattern = r"^https?://github\.com/[\w\-]+/[\w\-\.]+/?.*$"
-    return bool(re.match(pattern, url))
-
-# Made with Bob
+    pattern = r"^https?://(?:www\.)?github\.com/[\w\-.]+/[\w\-.]+(?:/.*)?$"
+    return bool(re.match(pattern, url.strip()))

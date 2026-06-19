@@ -47,9 +47,10 @@ def test_github_ingestion():
             "https://github.com/octocat/Hello-World",
             max_files=5
         )
-        print(f"  ✓ Contenu récupéré: {len(content)} caractères")
+        print(f"  ✓ Contenu récupéré: {len(content.content)} caractères")
+        print(f"  Fichiers: {content.files_analyzed}/{content.files_total}")
         print(f"  Aperçu (200 premiers caractères):")
-        print(f"  {content[:200]}...")
+        print(f"  {content.content[:200]}...")
     except Exception as e:
         print(f"  ✗ Erreur: {e}")
 
@@ -84,9 +85,10 @@ def test_zip_ingestion():
     print("\n2.3 Extraction du contenu:")
     try:
         content = extract_zip_project(zip_bytes, max_files=10)
-        print(f"  ✓ Contenu extrait: {len(content)} caractères")
+        print(f"  ✓ Contenu extrait: {len(content.content)} caractères")
+        print(f"  Fichiers: {content.files_analyzed}/{content.files_total}")
         print(f"  Aperçu:")
-        print(f"  {content[:300]}...")
+        print(f"  {content.content[:300]}...")
     except Exception as e:
         print(f"  ✗ Erreur: {e}")
 
@@ -214,5 +216,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Made with Bob

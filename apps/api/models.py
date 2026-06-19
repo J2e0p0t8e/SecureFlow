@@ -13,9 +13,7 @@ class AnalysisSession(models.Model):
     """
     
     MODE_CHOICES = [
-        ("A", "Mode A - Audit de sécurité"),
-        ("B", "Mode B - Pipeline de développement"),
-        ("C", "Mode C - Rapport PDF"),
+        ("A", "Audit-to-Fix"),
     ]
     
     INPUT_TYPE_CHOICES = [
@@ -56,6 +54,7 @@ class AnalysisSession(models.Model):
     STATUS_CHOICES = [
         ("pending", "En attente"),
         ("running", "En cours"),
+        ("awaiting_human", "Validation humaine"),
         ("completed", "Terminé"),
         ("failed", "Échoué"),
     ]
